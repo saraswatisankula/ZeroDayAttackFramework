@@ -1,0 +1,27 @@
+@model JsonElement
+@{ ViewData["Title"] = "Threat detection"; }
+<h2 class="mb-3">Threat detection</h2>
+@if (!(User.IsInRole("Admin") || User.IsInRole("Analyst")))
+{ <div class="alert alert-warning">Your role is read-only. Ask an administrator for the Analyst role to run detections.</div> }
+else
+{
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">Analyse a new CSV</div><div class="card-body">
+    <form method="post" asp-action="Run" enctype="multipart/form-data">
+      <input type="file" name="file" accept=".csv" class="form-control mb-3" required />
+      <button class="btn btn-danger" onclick="this.disabled=true;this.form.submit();this.innerText='Analysing...'"><i class="bi bi-radar"></i> Upload &amp; predict</button>
+    </form>
+    <p class="small text-secondary mt-3 mb-0">Up to 50,000 flows are scored per run. Each flow gets a 0-100 risk score, severity and threat type.</p>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">Analyse an uploaded dataset</div><div class="card-body">
+    <form method="post" asp-action="Run">
+      <select name="datasetId" class="form-select mb-3" required>
+        <option value="">Choose dataset...</option>
+        @foreach (var d in Model.A("items").Where(x => x.S("status") == "Validated"))
+        { <option value="@d.S("id")">#@d.S("id") - @d.S("name") (@d.L("rowCount").ToString("N0") rows)</option> }
+      </select>
+      <button class="btn btn-outline-danger" onclick="this.disabled=true;this.form.submit();this.innerText='Analysing...'">Predict</button>
+    </form>
+  </div></div></div>
+</div>
+}

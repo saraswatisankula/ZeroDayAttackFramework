@@ -1,0 +1,33 @@
+@model JsonElement
+@{
+  ViewData["Title"] = "Dataset " + Model.S("name");
+  var preview = (JsonElement)ViewData["Preview"]!;
+  var stats = ((JsonElement)ViewData["Stats"]!).P("stats");
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">@Model.S("name") <span class="badge @Js.Badge(Model.S("status")) fs-6">@Model.S("status")</span></h2>
+  <div>
+    @if (Model.S("status") == "Validated" && (User.IsInRole("Admin") || User.IsInRole("Analyst")))
+    { <form asp-controller="Detection" asp-action="Run" method="post" class="d-inline"><input type="hidden" name="datasetId" value="@Model.S("id")" /><button class="btn btn-danger"><i class="bi bi-radar"></i> Analyse for threats</button></form> }
+    <a class="btn btn-outline-secondary" asp-action="Index">Back</a>
+  </div>
+</div>
+<div class="alert @(Model.S("status") == "Validated" ? "alert-success" : "alert-danger")">Validation: @Model.S("validationMessage")</div>
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card kpi"><div class="card-body"><div class="small text-secondary">Rows</div><div class="value">@Model.L("rowCount").ToString("N0")</div></div></div></div>
+  <div class="col-md-3"><div class="card kpi"><div class="card-body"><div class="small text-secondary">Columns</div><div class="value">@Model.S("columnCount")</div></div></div></div>
+  <div class="col-md-3"><div class="card kpi"><div class="card-body"><div class="small text-secondary">Missing cells (sample)</div><div class="value">@stats.L("missingCellsInSample").ToString("N0")</div></div></div></div>
+  <div class="col-md-3"><div class="card kpi"><div class="card-body"><div class="small text-secondary">Infinite cells (sample)</div><div class="value">@stats.L("infiniteCellsInSample").ToString("N0")</div></div></div></div>
+</div>
+@if (stats.P("labelDistribution").ValueKind == JsonValueKind.Object)
+{
+  <div class="card mb-4"><div class="card-header">Label distribution (first 20,000 rows)</div><div class="card-body">
+    @foreach (var kv in stats.P("labelDistribution").EnumerateObject())
+    { <span class="badge bg-secondary me-2 mb-1">@kv.Name: @kv.Value.ToString()</span> }
+  </div></div>
+}
+<div class="card"><div class="card-header">Preview (first 15 rows)</div>
+  <div class="table-responsive" style="max-height:420px"><table class="table table-sm table-striped mb-0 small">
+    <thead><tr>@foreach (var c in preview.A("columns")) { <th class="text-nowrap">@c.ToString()</th> }</tr></thead>
+    <tbody>@foreach (var row in preview.A("rows")) { <tr>@foreach (var cell in row.EnumerateArray()) { <td class="text-nowrap">@cell.ToString()</td> }</tr> }</tbody>
+  </table></div></div>

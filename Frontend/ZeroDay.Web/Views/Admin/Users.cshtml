@@ -1,0 +1,19 @@
+@model JsonElement
+@{ ViewData["Title"] = "Users & roles"; }
+<h2 class="mb-3">Users &amp; role management</h2>
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th>Joined</th><th></th></tr></thead><tbody>
+  @foreach (var u in (Model.ValueKind == JsonValueKind.Array ? Model.EnumerateArray().ToList() : new List<JsonElement>()))
+  {
+    var role = u.A("roles").FirstOrDefault().ToString();
+    <tr><td>@u.S("fullName")</td><td>@u.S("email")</td>
+      <td><form asp-action="SetRole" method="post" class="d-flex gap-1">
+        <input type="hidden" name="id" value="@u.S("id")" />
+        <select name="role" class="form-select form-select-sm w-auto">
+          @foreach (var r in new[] { "Admin", "Analyst", "Viewer" }) { <option value="@r" selected="@(role == r)">@r</option> }
+        </select><button class="btn btn-sm btn-outline-secondary">Save</button></form></td>
+      <td>@(u.S("isActive") == "True" ? "Yes" : "No")</td><td class="small">@u.S("createdAt")</td>
+      <td class="text-end"><form asp-action="SetActive" method="post"><input type="hidden" name="id" value="@u.S("id")" />
+        <button name="value" value="@(u.S("isActive") == "True" ? "false" : "true")" class="btn btn-sm @(u.S("isActive") == "True" ? "btn-outline-danger" : "btn-outline-success")">@(u.S("isActive") == "True" ? "Deactivate" : "Activate")</button></form></td></tr>
+  }
+</tbody></table></div></div>

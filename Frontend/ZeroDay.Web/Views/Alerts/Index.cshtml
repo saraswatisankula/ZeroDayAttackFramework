@@ -1,0 +1,30 @@
+@model JsonElement
+@{
+  ViewData["Title"] = "Alerts";
+  var status = ViewData["Status"] as string;
+  var canAct = User.IsInRole("Admin") || User.IsInRole("Analyst");
+}
+<h2 class="mb-3">Security alerts</h2>
+<ul class="nav nav-pills mb-3">
+  @foreach (var s in new[] { "", "Open", "Acknowledged", "Resolved" })
+  { <li class="nav-item"><a class="nav-link @((status ?? "") == s ? "active" : "")" asp-action="Index" asp-route-status="@s">@(s == "" ? "All" : s)</a></li> }
+</ul>
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr><th>#</th><th>Alert</th><th>Severity</th><th>Risk</th><th>Status</th><th>Raised</th>@if (canAct) { <th></th> }</tr></thead><tbody>
+  @foreach (var a in Model.A("items"))
+  {
+    <tr><td>@a.S("id")</td><td>@a.S("title")<div class="small text-secondary">analysis #@a.S("predictionId")</div></td>
+      <td><span class="badge @Js.Badge(a.S("severity"))">@a.S("severity")</span></td><td>@a.S("riskScore")</td>
+      <td><span class="badge @Js.Badge(a.S("status"))">@a.S("status")</span></td><td class="small">@a.S("createdAt")</td>
+      @if (canAct)
+      {
+        <td class="text-end"><form asp-action="SetStatus" method="post" class="d-inline-flex gap-1">
+          <input type="hidden" name="id" value="@a.S("id")" /><input type="hidden" name="status0" value="@status" />
+          @if (a.S("status") == "Open") { <button name="status" value="Acknowledged" class="btn btn-sm btn-outline-warning">Acknowledge</button> }
+          @if (a.S("status") != "Resolved") { <button name="status" value="Resolved" class="btn btn-sm btn-outline-success">Resolve</button> }
+        </form></td>
+      }
+    </tr>
+  }
+  @if (!Model.A("items").Any()) { <tr><td colspan="7" class="text-center text-secondary py-4">No alerts.</td></tr> }
+</tbody></table></div></div>

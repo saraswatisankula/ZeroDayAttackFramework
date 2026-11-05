@@ -1,0 +1,26 @@
+@model JsonElement
+@{
+  ViewData["Title"] = "Audit logs";
+  var page = (int)(ViewData["Page"] ?? 1);
+  var action = ViewData["Action"] as string; var email = ViewData["Email"] as string;
+}
+<h2 class="mb-3">Audit logs</h2>
+<form method="get" class="row g-2 mb-3">
+  <div class="col-md-3"><select name="auditAction" class="form-select"><option value="">All actions</option>
+    @foreach (var a in new[] { "Login", "LoginFailed", "Register", "DatasetUpload", "DatasetDelete", "Prediction", "AlertStatusChanged", "ReportGenerated", "ReportExportPdf", "RoleChanged", "PasswordResetRequested" })
+    { <option value="@a" selected="@(action == a)">@a</option> }</select></div>
+  <div class="col-md-3"><input name="email" value="@email" placeholder="User email contains..." class="form-control" /></div>
+  <div class="col-md-2"><button class="btn btn-outline-secondary w-100">Filter</button></div>
+</form>
+<div class="card"><div class="table-responsive"><table class="table table-sm table-hover mb-0 small">
+  <thead><tr><th>Time (UTC)</th><th>User</th><th>Action</th><th>Entity</th><th>Details</th><th>IP</th></tr></thead><tbody>
+  @foreach (var l in Model.A("items"))
+  { <tr><td class="text-nowrap">@l.S("timestamp")</td><td>@l.S("userEmail", "-")</td><td><span class="badge @(l.S("action") == "LoginFailed" ? "bg-danger" : "bg-secondary")">@l.S("action")</span></td>
+        <td>@l.S("entityType") @l.S("entityId")</td><td>@l.S("details")</td><td>@l.S("ipAddress")</td></tr> }
+  @if (!Model.A("items").Any()) { <tr><td colspan="6" class="text-center text-secondary py-4">No entries.</td></tr> }
+</tbody></table></div></div>
+<div class="d-flex justify-content-between mt-3 small text-secondary">
+  <span>@Model.L("total").ToString("N0") entries</span>
+  <span>@if (page > 1) { <a asp-action="Audit" asp-route-page="@(page - 1)" asp-route-auditAction="@action" asp-route-email="@email">&laquo; Prev</a> }
+        @if (Model.L("total") > page * 50) { <a asp-action="Audit" asp-route-page="@(page + 1)" asp-route-auditAction="@action" asp-route-email="@email" class="ms-3">Next &raquo;</a> }</span>
+</div>

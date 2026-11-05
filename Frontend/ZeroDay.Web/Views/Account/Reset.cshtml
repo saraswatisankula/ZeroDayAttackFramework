@@ -1,0 +1,12 @@
+@{ ViewData["Title"] = "Reset password"; }
+<div class="auth-card card shadow"><div class="card-body p-4">
+  <h3 class="mb-3">Reset password</h3>
+  @if (ViewData["Error"] is string e) { <div class="alert alert-danger">@e</div> }
+  @if (TempData["DevToken"] is string t) { <div class="alert alert-warning small">Development mode token: <code class="user-select-all">@t</code></div> }
+  <form method="post" asp-action="Reset">
+    <div class="mb-3"><label class="form-label">Email</label><input name="email" type="email" value="@ViewData["Email"]" class="form-control" required /></div>
+    <div class="mb-3"><label class="form-label">Reset token</label><input name="token" class="form-control" required /></div>
+    <div class="mb-3"><label class="form-label">New password</label><input name="newPassword" type="password" class="form-control" required /></div>
+    <button class="btn btn-danger w-100">Set new password</button>
+  </form>
+</div></div>

@@ -1,0 +1,9 @@
+bin/
+obj/
+__pycache__/
+uploads/
+Deployment/.env
+ML/data/
+ML/results/
+.vs/
+*.user

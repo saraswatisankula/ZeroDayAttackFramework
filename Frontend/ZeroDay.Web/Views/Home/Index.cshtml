@@ -1,0 +1,54 @@
+@model JsonElement
+@{
+  ViewData["Title"] = "Dashboard";
+  var t = Model.P("totals");
+  var days = (int)(ViewData["Days"] ?? 30);
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Security dashboard</h2>
+  <div class="btn-group btn-group-sm">
+    @foreach (var d in new[] { 7, 30, 90 })
+    { <a class="btn @(d == days ? "btn-danger" : "btn-outline-secondary")" asp-action="Index" asp-route-days="@d">@d days</a> }
+  </div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><div class="card kpi info"><div class="card-body"><div class="text-secondary small">Total network flows</div><div class="value">@t.L("totalNetworkFlows").ToString("N0")</div></div></div></div>
+  <div class="col-6 col-xl-3"><div class="card kpi warn"><div class="card-body"><div class="text-secondary small">Total threats</div><div class="value">@t.L("totalThreats").ToString("N0")</div></div></div></div>
+  <div class="col-6 col-xl-3"><div class="card kpi danger"><div class="card-body"><div class="text-secondary small">High-risk alerts</div><div class="value">@t.L("highRiskAlerts").ToString("N0")</div></div></div></div>
+  <div class="col-6 col-xl-3"><div class="card kpi danger"><div class="card-body"><div class="text-secondary small">Zero-day detections</div><div class="value">@t.L("zeroDayDetections").ToString("N0")</div></div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">Threat distribution</div><div class="card-body"><canvas id="cDist"></canvas></div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">Risk analysis (flows per risk band)</div><div class="card-body"><canvas id="cRisk"></canvas></div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">Model performance</div><div class="card-body"><canvas id="cPerf"></canvas><div id="perfNote" class="small text-secondary mt-2"></div></div></div></div>
+  <div class="col-lg-8"><div class="card"><div class="card-header">Detection trends</div><div class="card-body"><canvas id="cTrend"></canvas></div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header d-flex justify-content-between">Recent alerts <span class="badge bg-danger">@t.L("openAlerts") open</span></div>
+    <ul class="list-group list-group-flush">
+      @foreach (var a in Model.A("recentAlerts"))
+      { <li class="list-group-item d-flex justify-content-between align-items-center"><span class="small">@a.S("title")</span><span class="badge @Js.Badge(a.S("severity"))">@a.S("severity")</span></li> }
+      @if (!Model.A("recentAlerts").Any()) { <li class="list-group-item text-secondary">No alerts yet. Run a detection.</li> }
+    </ul></div></div>
+</div>
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  const D = @Html.Raw(Model.Raw());
+  const colors = ['#dc3545','#fd7e14','#ffc107','#20c997','#0dcaf0','#6f42c1'];
+  const dist = (D && D.threatDistribution) || {};
+  new Chart(cDist, { type: 'doughnut', data: { labels: Object.keys(dist), datasets: [{ data: Object.values(dist), backgroundColor: colors }] } });
+  const risk = (D && D.riskAnalysis) || [];
+  new Chart(cRisk, { type: 'bar', data: { labels: risk.map(r => r.bucket), datasets: [{ label: 'Flows', data: risk.map(r => r.count), backgroundColor: '#fd7e14' }] },
+                     options: { scales: { y: { type: 'logarithmic' } }, plugins: { legend: { display: false } } } });
+  const tr = (D && D.detectionTrends) || [];
+  new Chart(cTrend, { type: 'line', data: { labels: tr.map(x => x.date), datasets: [
+      { label: 'Threats', data: tr.map(x => x.threats), borderColor: '#ffc107', tension: .3 },
+      { label: 'Zero-day', data: tr.map(x => x.zeroDay), borderColor: '#dc3545', tension: .3 }] } });
+  const m = D && D.modelPerformance && D.modelPerformance.metrics;
+  if (m) {
+    const keys = ['Accuracy','Precision','Recall','F1 Score'];
+    new Chart(cPerf, { type: 'bar', data: { labels: keys, datasets: [{ data: keys.map(k => m[k]), backgroundColor: '#20c997' }] },
+                       options: { scales: { y: { min: 0, max: 1 } }, plugins: { legend: { display: false } } } });
+    perfNote.textContent = 'Held-out split of known attack families. Error rate: ' + (m['Error Rate'] * 100).toFixed(2) + '%. Zero-day results: see the evaluation report.';
+  } else { perfNote.textContent = 'ML service not reachable or model not trained yet.'; }
+</script>
+}

@@ -1,0 +1,48 @@
+@model JsonElement
+@{
+  ViewData["Title"] = "Detection result";
+  var r = Model.P("result"); var s = Model.P("summary");
+  var sevClass = r.S("severity") == "Critical" ? "text-danger" : r.S("severity") == "High" ? "text-warning" : r.S("severity") == "Medium" ? "text-info" : "text-success";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Detection result <small class="text-secondary fs-6">analysis #@Model.S("predictionId")</small></h2>
+  <div>
+    @if (User.IsInRole("Admin") || User.IsInRole("Analyst"))
+    {
+      <form asp-controller="Reports" asp-action="Create" method="post" class="d-inline"><input type="hidden" name="predictionId" value="@Model.S("predictionId")" /><input type="hidden" name="type" value="Threat" /><button class="btn btn-outline-secondary"><i class="bi bi-file-earmark-pdf"></i> Threat report</button></form>
+      <form asp-controller="Reports" asp-action="Create" method="post" class="d-inline"><input type="hidden" name="predictionId" value="@Model.S("predictionId")" /><input type="hidden" name="type" value="Risk" /><button class="btn btn-outline-secondary">Risk report</button></form>
+    }
+    <a class="btn btn-outline-secondary" asp-action="Index">New analysis</a>
+  </div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-body text-center">
+    <div class="small text-secondary">Highest-risk flow</div>
+    <div class="risk-ring @sevClass">@r.S("riskScore")</div>
+    <div class="fs-5">@r.S("threatType")</div>
+    <span class="badge @Js.Badge(r.S("severity")) mt-1">@r.S("severity")</span>
+    <div class="small text-secondary mt-2">Decision margin: @r.S("confidence")</div>
+  </div></div></div>
+  <div class="col-lg-8"><div class="row g-3">
+    <div class="col-6 col-md-3"><div class="card kpi info"><div class="card-body"><div class="small text-secondary">Flows</div><div class="value fs-4">@s.L("totalFlows").ToString("N0")</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card kpi warn"><div class="card-body"><div class="small text-secondary">Threats</div><div class="value fs-4">@s.L("threats").ToString("N0")</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card kpi danger"><div class="card-body"><div class="small text-secondary">High risk</div><div class="value fs-4">@s.L("highRiskAlerts").ToString("N0")</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card kpi danger"><div class="card-body"><div class="small text-secondary">Zero-day</div><div class="value fs-4">@s.L("zeroDayDetections").ToString("N0")</div></div></div></div>
+    <div class="col-12"><div class="card"><div class="card-header">Risk distribution</div><div class="card-body"><canvas id="cHist"></canvas></div></div></div>
+  </div></div>
+</div>
+<div class="card"><div class="card-header">Top threats @(s.S("truncated") == "True" ? "(storage capped)" : "")</div>
+<div class="table-responsive"><table class="table table-sm table-hover mb-0">
+  <thead><tr><th>Flow</th><th>Type</th><th>Severity</th><th>Risk</th><th>Anomaly</th><th>Known-attack prob.</th></tr></thead><tbody>
+  @foreach (var t in Model.A("topThreats"))
+  { <tr><td>#@t.S("flowIndex")</td><td>@t.S("threatType")</td><td><span class="badge @Js.Badge(t.S("severity"))">@t.S("severity")</span></td><td>@t.S("riskScore")</td><td>@t.S("anomalyScore")</td><td>@t.S("supervisedProbability")</td></tr> }
+  @if (!Model.A("topThreats").Any()) { <tr><td colspan="6" class="text-center text-success py-3">No threats detected in this file.</td></tr> }
+</tbody></table></div></div>
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  const h = @Html.Raw(s.P("riskHistogram").Raw());
+  new Chart(cHist, { type: 'bar', data: { labels: h.map((_, i) => (i * 10) + '-' + (i * 10 + 9)), datasets: [{ data: h, backgroundColor: h.map((_, i) => i >= 7 ? '#dc3545' : i >= 5 ? '#ffc107' : '#20c997') }] },
+                     options: { scales: { y: { type: 'logarithmic' } }, plugins: { legend: { display: false } } } });
+</script>
+}

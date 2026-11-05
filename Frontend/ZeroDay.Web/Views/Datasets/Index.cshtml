@@ -1,0 +1,37 @@
+@model JsonElement
+@{ ViewData["Title"] = "Datasets"; var page = (int)(ViewData["Page"] ?? 1); }
+<h2 class="mb-3">Dataset management</h2>
+@if (User.IsInRole("Admin") || User.IsInRole("Analyst"))
+{
+<div class="card mb-4"><div class="card-body">
+  <form method="post" asp-action="Upload" enctype="multipart/form-data" class="row g-2 align-items-end">
+    <div class="col-md-4"><label class="form-label">Flow CSV (CIC-IDS2017 format)</label><input type="file" name="file" accept=".csv" class="form-control" required /></div>
+    <div class="col-md-4"><label class="form-label">Name (optional)</label><input name="name" class="form-control" /></div>
+    <div class="col-md-2"><button class="btn btn-danger w-100"><i class="bi bi-upload"></i> Upload &amp; validate</button></div>
+  </form>
+  <div class="form-text mt-2">Files are validated on upload: header, numeric columns, malformed rows, missing/infinite values. Max 200 MB.</div>
+</div></div>
+}
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr><th>#</th><th>Name</th><th>Rows</th><th>Cols</th><th>Label</th><th>Status</th><th>Uploaded</th><th></th></tr></thead>
+  <tbody>
+  @foreach (var d in Model.A("items"))
+  {
+    <tr>
+      <td>@d.S("id")</td><td>@d.S("name")<div class="small text-secondary">@d.S("originalFileName")</div></td>
+      <td>@d.L("rowCount").ToString("N0")</td><td>@d.S("columnCount")</td><td>@(d.S("hasLabelColumn") == "True" ? "yes" : "no")</td>
+      <td><span class="badge @Js.Badge(d.S("status"))">@d.S("status")</span></td>
+      <td class="small">@d.S("uploadedAt")</td>
+      <td class="text-end">
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@d.S("id")">Preview</a>
+        @if (User.IsInRole("Admin"))
+        { <form asp-action="Delete" asp-route-id="@d.S("id")" method="post" class="d-inline" onsubmit="return confirm('Delete this dataset and its predictions?')"><button class="btn btn-sm btn-outline-danger">Delete</button></form> }
+      </td>
+    </tr>
+  }
+  @if (!Model.A("items").Any()) { <tr><td colspan="8" class="text-center text-secondary py-4">No datasets uploaded yet.</td></tr> }
+  </tbody></table></div></div>
+<div class="d-flex justify-content-between mt-3 small text-secondary">
+  <span>@Model.L("total") dataset(s)</span>
+  <span>@if (page > 1) { <a asp-action="Index" asp-route-page="@(page - 1)">&laquo; Prev</a> } @if (Model.L("total") > page * 20) { <a asp-action="Index" asp-route-page="@(page + 1)" class="ms-3">Next &raquo;</a> }</span>
+</div>

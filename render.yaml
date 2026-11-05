@@ -1,0 +1,68 @@
+# Render Blueprint. Place at the REPOSITORY ROOT (the folder that contains ML/, Backend/, Frontend/).
+# Dashboard -> New -> Blueprint -> select the repo. Fill every "sync: false" value when prompted.
+# SQL Server is NOT hosted by Render: use Azure SQL (or any reachable SQL Server) and paste its connection string.
+services:
+  # ---- Python ML inference service (private: only reachable from the other services)
+  - type: pserv
+    name: zeroday-ml
+    runtime: docker
+    dockerfilePath: ./ML/Dockerfile
+    dockerContext: ./ML
+    plan: starter
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: ML_API_KEY
+        generateValue: true
+      - key: MODEL_PATH
+        value: /app/models/zero_day_bundle.joblib
+      - key: MODEL_URL            # e.g. a GitHub Release asset URL of zero_day_bundle.joblib (leave blank if the file is committed in ML/models/)
+        sync: false
+
+  # ---- ASP.NET Core 8 REST API
+  - type: web
+    name: zeroday-api
+    runtime: docker
+    dockerfilePath: ./Backend/ZeroDay.Api/Dockerfile
+    dockerContext: ./Backend/ZeroDay.Api
+    plan: starter
+    healthCheckPath: /health
+    disk:
+      name: uploads
+      mountPath: /data
+      sizeGB: 5
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__Default      # Azure SQL string, see Documentation/DEPLOYMENT_GUIDE.md
+        sync: false
+      - key: Jwt__Key
+        generateValue: true
+      - key: Ml__BaseUrl
+        fromService: { type: pserv, name: zeroday-ml, property: hostport }
+      - key: Ml__ApiKey
+        fromService: { type: pserv, name: zeroday-ml, envVarKey: ML_API_KEY }
+      - key: Upload__Path
+        value: /data/uploads
+      - key: Seed__AdminEmail
+        sync: false
+      - key: Seed__AdminPassword
+        sync: false
+      - key: Database__AutoCreate
+        value: "true"
+      - key: Auth__ReturnResetToken
+        value: "false"
+
+  # ---- ASP.NET Core 8 MVC website (the public URL users open)
+  - type: web
+    name: zeroday-web
+    runtime: docker
+    dockerfilePath: ./Frontend/ZeroDay.Web/Dockerfile
+    dockerContext: ./Frontend/ZeroDay.Web
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Api__BaseUrl
+        fromService: { type: web, name: zeroday-api, property: hostport }

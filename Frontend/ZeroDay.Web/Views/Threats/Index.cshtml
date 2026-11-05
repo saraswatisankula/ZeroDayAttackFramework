@@ -1,0 +1,31 @@
+@model JsonElement
+@{
+  ViewData["Title"] = "Threats";
+  var page = (int)(ViewData["Page"] ?? 1);
+  var sev = ViewData["Severity"] as string; var typ = ViewData["Type"] as string;
+}
+<h2 class="mb-3">Detected threats</h2>
+<form method="get" class="row g-2 mb-3">
+  <div class="col-md-3"><select name="severity" class="form-select">
+    <option value="">All severities</option>
+    @foreach (var s in new[] { "Critical", "High", "Medium", "Low" }) { <option value="@s" selected="@(sev == s)">@s</option> }
+  </select></div>
+  <div class="col-md-3"><select name="type" class="form-select">
+    <option value="">All types</option>
+    @foreach (var s in new[] { "Zero-Day Attack", "Known Attack", "Suspicious Anomaly" }) { <option value="@s" selected="@(typ == s)">@s</option> }
+  </select></div>
+  <div class="col-md-2"><button class="btn btn-outline-secondary w-100">Filter</button></div>
+</form>
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr><th>ID</th><th>Analysis</th><th>Flow</th><th>Type</th><th>Severity</th><th>Risk</th><th>Anomaly</th><th>Detected</th></tr></thead><tbody>
+  @foreach (var t in Model.A("items"))
+  { <tr><td>@t.S("id")</td><td>#@t.S("predictionId")</td><td>#@t.S("flowIndex")</td>
+        <td>@(t.S("threatType") == "Zero-Day Attack" ? Html.Raw("<i class=\"bi bi-exclamation-triangle-fill text-danger\"></i> ") : Html.Raw(""))@t.S("threatType")</td>
+        <td><span class="badge @Js.Badge(t.S("severity"))">@t.S("severity")</span></td><td>@t.S("riskScore")</td><td>@t.S("anomalyScore")</td><td class="small">@t.S("detectedAt")</td></tr> }
+  @if (!Model.A("items").Any()) { <tr><td colspan="8" class="text-center text-secondary py-4">No threats match.</td></tr> }
+</tbody></table></div></div>
+<div class="d-flex justify-content-between mt-3 small text-secondary">
+  <span>@Model.L("total").ToString("N0") threat(s)</span>
+  <span>@if (page > 1) { <a asp-action="Index" asp-route-page="@(page - 1)" asp-route-severity="@sev" asp-route-type="@typ">&laquo; Prev</a> }
+        @if (Model.L("total") > page * 50) { <a asp-action="Index" asp-route-page="@(page + 1)" asp-route-severity="@sev" asp-route-type="@typ" class="ms-3">Next &raquo;</a> }</span>
+</div>

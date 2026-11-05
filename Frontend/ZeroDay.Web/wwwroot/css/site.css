@@ -1,0 +1,8 @@
+.kpi { border-left: 4px solid var(--bs-secondary); }
+.kpi.danger { border-color: var(--bs-danger); } .kpi.warn { border-color: var(--bs-warning); }
+.kpi.info { border-color: var(--bs-info); } .kpi.ok { border-color: var(--bs-success); }
+.kpi .value { font-size: 2rem; font-weight: 700; }
+.risk-ring { font-size: 3.5rem; font-weight: 800; line-height: 1; }
+.table td, .table th { vertical-align: middle; }
+.auth-card { max-width: 440px; margin: 0 auto; }
+canvas { max-height: 320px; }
