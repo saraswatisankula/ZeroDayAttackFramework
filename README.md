@@ -12,3 +12,16 @@
 Start with `Documentation/DEPLOYMENT_GUIDE.md` section 1.
 No experiment results exist yet: run `ML/model_compare.py` on real CIC-IDS2017 data before writing any numbers into a report.
 Still to do: IEEE report, 15-slide PPT, 50 viva Q&A (these need your real results).
+
+
+## Project website (GitHub Pages)
+
+The static project website is published from the `docs/` directory using GitHub Actions.
+
+- Website: https://saraswatisankula.github.io/ZeroDayAttackFramework/
+- Source: [docs/index.html](docs/index.html)
+- Deployment workflow: [Deploy static project website](.github/workflows/pages.yml)
+
+If the Pages site has not been enabled for this repository yet, open **Settings → Pages** and select **GitHub Actions** as the build and deployment source. The workflow will then publish updates whenever files under `docs/` change on `main`.
+
+The static site is a project overview only; it does not run the Python ML service, ASP.NET API, database, or live detection dashboard. See the verification status above before interpreting project capabilities. Do not commit the full CIC-IDS2017 archive or raw PCAP captures to this repository.
